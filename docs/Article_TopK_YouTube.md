@@ -98,6 +98,25 @@ A Count-Min Sketch is a probabilistic data structure that uses a fixed-size 2D a
 
 ## Conclusion
 
-For educational projects and moderate loads: **Use a MinHeap**. It outperforms Lists and Trees for sliding window maintenance.
+## Conclusion: The "Million Event" Solution
 
-For massive scale: **Don't count everything perfectly**. Use **Scatter-Gather** with **Count-Min Sketch** sketches to find the signal in the noise.
+So, what is the best approach when you are handling millions of events?
+
+1.  **For the Local Node (The Worker)**: simpler is better.
+    -   Use a **MinHeap**. As proved by our benchmarks, it dominates `ArrayList` and `LinkedList` by factors of 40x-100x. It provides the raw throughput needed to handle 50k+ events/sec per node without Garbage Collection pauses.
+
+2.  **For the Global System (The Architecture)**: accuracy is a luxury.
+    -   When trying to find the "Top 10" out of **millions of distinct videos**, you do not need perfect limits.
+    -   **The Best Approach**: Combine **Scatter-Gather** with **Count-Min Sketch**.
+    -   Have hundreds of worker nodes ingest the stream using **Count-Min Sketches** (to spatially compress billions of video IDs into constant memory).
+    -   Periodically flush these small sketches to a central aggregator.
+    -   This allows you to find the "Heavy Hitters" with **99.9% accuracy** using **0.1% of the memory** required for exact counting.
+
+Top-K is rarely a problem of "sorting" and almost always a problem of **memory management** and **approximation**. Start with a Heap, but scale with a Sketch.
+
+## Code and Benchmarks
+
+You can find the full Java source code, benchmark scripts, and analysis documents in the GitHub repository:
+
+[**github.com/ahzamali/the-top-k-problem**](https://github.com/ahzamali/the-top-k-problem)
+
