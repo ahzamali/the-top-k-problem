@@ -96,8 +96,6 @@ A Count-Min Sketch is a probabilistic data structure that uses a fixed-size 2D a
 
 ---
 
-## Conclusion
-
 ## Conclusion: The "Million Event" Solution
 
 So, what is the best approach when you are handling millions of events?
