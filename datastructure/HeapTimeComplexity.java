@@ -1,4 +1,4 @@
-package heap;
+package datastructure;
 
 public class HeapTimeComplexity {
     public static void main(String[] args) {

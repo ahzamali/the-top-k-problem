@@ -1,6 +1,6 @@
 package topk;
 
-import heap.MinHeap;
+import datastructure.MinHeap;
 
 public class HeapTopK extends BaseTopKHandler {
     private MinHeap<Event> minHeap = new MinHeap<>();
