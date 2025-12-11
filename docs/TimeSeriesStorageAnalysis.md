@@ -13,6 +13,7 @@ Determine the optimal data structure for a **High-Throughput Time Series** workl
 1.  **Min Heap** (Optimized, Shift-based)
 2.  **Binary Search Tree** (BST / `TreeMap`)
 3.  **Sorted List** (`ArrayList` with Binary Search)
+4.  **LinkedList** (`LinkedList` with Linear Search)
 
 ---
 
@@ -24,6 +25,7 @@ We ran controlled tests with **N=200,000** events (95% sorted, 5% random).
 | **Min Heap** | **2 ms** ($0.01\mu s/op$) | 41 ms ($0.2\mu s/op$) | **43 ms** |
 | **BST (TreeMap)** | 19 ms ($0.1\mu s/op$) | **7 ms** ($0.03\mu s/op$) | 26 ms |
 | **Sorted List** | 39 ms ($0.2\mu s/op$) | 1168 ms ($5.8\mu s/op$*) | 1207 ms |
+| **LinkedList** | 1345 ms ($6.7\mu s/op$) | **0 ms** ($0\mu s/op$) | 1345 ms |
 
 *> Note: List eviction cost grows linearly with window size $N$. The $5.8\mu s$ figure is the average for sizes $0 \to 200k$ (Avg $100k$).*
 
@@ -59,6 +61,16 @@ Extrapolating strictly from our benchmarks to the target workload.
     -   Metric: $10,000 \times 35\mu s =$ **350 ms**.
 -   **Total CPU Load**: **~352 ms per second** (35% usage).
 -   **Verdict**: **Dangerous.** A single thread spends 35% of time just managing memory shifts. Any spike in window size (e.g., 5 min window) would crash the system ($>100\%$ CPU).
+
+### D. LinkedList Performance
+-   **Ingestion (10k/sec)**:
+    -   Cost is $O(N)$ traversal. At $N=200k$, it took 1345ms.
+    -   At $N=600k$, traversal is $3x$ longer.
+    -   Metric: ~4000 ms ??
+-   **Eviction (10k/sec)**:
+    -   **0 ms**. Instant.
+-   **Total CPU Load**: **> 1000 ms per second** (> 100% usage).
+-   **Verdict**: **Failure**. The cost of traversing the list to insert the 5% late events is unacceptable. Cache locality is poor (pointer chasing).
 
 ---
 

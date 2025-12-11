@@ -1,6 +1,6 @@
 # Top-K Hit Counter (Sliding Window)
 
-This project evaluates three different data structures for implementing a **Top-K Hit Counter** over a sliding time window. It simulates a high-throughput event stream (5,000 events/sec) to determine the most efficient storage strategy for maintaining the top elements.
+This project evaluates four different data structures for implementing a **Top-K Hit Counter** over a sliding time window. It simulates a high-throughput event stream (5,000 events/sec) to determine the most efficient storage strategy for maintaining the top elements.
 
 ## 🎯 Problem Statement
 
@@ -13,7 +13,7 @@ We need to consume a stream of events (`item`, `count`, `timestamp`), efficientl
 
 ## 🛠️ Implemented Solutions
 
-We tested three approaches to store the raw events for window management:
+We tested four approaches to store the raw events for window management:
 
 ### 1. HeapTopK (MinHeap)
 -   **Structure**: A Min-Heap sorted by timestamp.
@@ -35,6 +35,13 @@ We tested three approaches to store the raw events for window management:
 -   **Expiration**: $O(N)$ (Removing from head requires shifting all elements).
 -   **Pros**: Simple; $O(1)$ access by index.
 -   **Cons**: **Terrible performance** for sliding windows due to memory shifting ($O(N)$) on every insert/delete.
+
+### 4. LinkedTopK (LinkedList)
+-   **Structure**: A sorted LinkedList.
+-   **Ingestion**: $O(N)$ (Traversal to find sort position + $O(1)$ Link).
+-   **Expiration**: $O(1)$ (Unlink head).
+-   **Pros**: Instant expiration (no shifting).
+-   **Cons**: **Slow Ingestion**. Traversing the list to insert out-of-order items is very slow due to pointer chasing (cache misses), even if it avoids memory shifting.
 
 ---
 

@@ -2,7 +2,9 @@ package datastructure;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
+
+import java.util.LinkedList;
+import java.util.ListIterator;
 import java.util.Random;
 import java.util.TreeMap;
 
@@ -29,6 +31,9 @@ public class TimeSeriesEvaluation {
 
             // 3. Sorted List (Binary Search)
             evaluateSortedList(n, data);
+
+            // 4. Sorted LinkedList
+            evaluateLinkedList(n, data);
 
             System.out.println("----------------------------------------------------------------");
         }
@@ -141,6 +146,45 @@ public class TimeSeriesEvaluation {
         long endExtract = System.nanoTime();
 
         printResult(n, "Sorted List", (endInsert - startInsert), (endExtract - startExtract));
+    }
+
+    private static void evaluateLinkedList(int n, int[] data) {
+        // LinkedList approach:
+        // Insertion: O(N) traversal.
+        // Extraction: O(1) from head.
+        LinkedList<Integer> list = new LinkedList<>();
+
+        long startInsert = System.nanoTime();
+        for (int val : data) {
+            if (list.isEmpty() || val >= list.getLast()) {
+                list.addLast(val);
+            } else {
+                // Find insertion point from tail
+                ListIterator<Integer> it = list.listIterator(list.size());
+                boolean added = false;
+                while (it.hasPrevious()) {
+                    int current = it.previous();
+                    if (current <= val) {
+                        it.next();
+                        it.add(val);
+                        added = true;
+                        break;
+                    }
+                }
+                if (!added) {
+                    list.addFirst(val);
+                }
+            }
+        }
+        long endInsert = System.nanoTime();
+
+        long startExtract = System.nanoTime();
+        while (!list.isEmpty()) {
+            list.pollFirst();
+        }
+        long endExtract = System.nanoTime();
+
+        printResult(n, "LinkedList", (endInsert - startInsert), (endExtract - startExtract));
     }
 
     private static void printResult(int n, String method, long insertNs, long extractNs) {
