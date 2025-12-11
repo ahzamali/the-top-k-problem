@@ -60,6 +60,9 @@ We tested three approaches to store the raw events for window management:
 2.  **Loser: ArrayList**.
     -   The `ArrayList` approach collapses under load. Pruning takes **27ms** per second (vs <1ms for others). This is caused by shifting 300,000 elements in memory every second. **Do not use huge sorted lists for sliding windows.**
 
+### Detailed Analysis
+For a deeper dive into the theoretical time complexity and initial storage analysis (MinHeap vs BST vs Sorted List), please refer to the [Time Series Storage Analysis](datastructure/TimeSeriesStorageAnalysis.md).
+
 ---
 
 ## 🚀 How to Run
