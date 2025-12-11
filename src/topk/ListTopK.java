@@ -2,7 +2,6 @@ package topk;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 
 public class ListTopK extends BaseTopKHandler {
     private ArrayList<Event> list = new ArrayList<>();

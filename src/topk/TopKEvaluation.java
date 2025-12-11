@@ -7,16 +7,33 @@ import java.util.Random;
 public class TopKEvaluation {
 
     // Config
-    private static final int EVENTS_PER_SEC = 5000;
-    private static final int DURATION_SECONDS = 80; // Run longer to fill window (60s) + steady state
+    private static int eventsPerSec = 5000;
+    private static int durationSeconds = 80; // Run longer to fill window (60s) + steady state
     private static final long WINDOW_MS = 60000;
     private static final int NUM_ITEMS = 1000; // Cardinality
     private static final double OUT_OF_ORDER_RATIO = 0.05;
 
     public static void main(String[] args) {
+        if (args.length > 0) {
+            try {
+                eventsPerSec = Integer.parseInt(args[0]);
+            } catch (NumberFormatException e) {
+                System.err.println("Invalid rate: " + args[0]);
+                return;
+            }
+        }
+        if (args.length > 1) {
+            try {
+                durationSeconds = Integer.parseInt(args[1]);
+            } catch (NumberFormatException e) {
+                System.err.println("Invalid duration: " + args[1]);
+                return;
+            }
+        }
+
         System.out.println("Top K Hit Counter Evaluation");
-        System.out.printf("Events/Sec: %d, Window: %d ms, Duration: %d sec%n", EVENTS_PER_SEC, WINDOW_MS,
-                DURATION_SECONDS);
+        System.out.printf("Events/Sec: %d, Window: %d ms, Duration: %d sec%n", eventsPerSec, WINDOW_MS,
+                durationSeconds);
         System.out.println("--------------------------------------------------------------------------------");
 
         // Generate dataset upfront to ensure fairness
@@ -76,11 +93,11 @@ public class TopKEvaluation {
         Random rand = new Random(42);
         long startTime = 1000000; // Start at arbitrary time
 
-        for (int s = 0; s < DURATION_SECONDS; s++) {
+        for (int s = 0; s < durationSeconds; s++) {
             long currentTime = startTime + (s * 1000);
             List<EventData> events = new ArrayList<>();
 
-            for (int i = 0; i < EVENTS_PER_SEC; i++) {
+            for (int i = 0; i < eventsPerSec; i++) {
                 // Item
                 String item = "item-" + rand.nextInt(NUM_ITEMS);
                 int count = 1;

@@ -77,6 +77,21 @@ For a deeper dive into the theoretical time complexity and initial storage analy
     java -cp bin topk.TopKEvaluation
     ```
 
+### Configurable Run
+
+You can run the benchmark with custom Event Rate (ops/sec) and Duration (seconds).
+
+**Windows (PowerShell):**
+```powershell
+.\run_benchmark.ps1 -Rate 1000 -Duration 10
+```
+
+**Linux / Mac (Bash):**
+```bash
+chmod +x run_benchmark.sh
+./run_benchmark.sh -r 1000 -d 10
+```
+
 ## 📂 Project Structure
 
 -   `src/topk/TopKEvaluation.java`: The main benchmark harness.

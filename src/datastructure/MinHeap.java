@@ -94,12 +94,6 @@ public class MinHeap<T extends Comparable<T>> {
         return shifts;
     }
 
-    private void swap(int i, int j) {
-        T temp = heap.get(i);
-        heap.set(i, heap.get(j));
-        heap.set(j, temp);
-    }
-
     // Helper for demonstration
     public int getLastSiftUpSwaps() {
         return 0;
