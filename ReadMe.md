@@ -1,111 +1,90 @@
-# Top-K Hit Counter (Sliding Window)
+# High-Throughput Sliding Window Top-K
 
-This project evaluates four different data structures for implementing a **Top-K Hit Counter** over a sliding time window. It simulates a high-throughput event stream (5,000 events/sec) to determine the most efficient storage strategy for maintaining the top elements.
+> **Architectural Analysis of Real-Time Ranking Strategies**
 
-## 🎯 Problem Statement
-
-We need to consume a stream of events (`item`, `count`, `timestamp`), efficiently store them, and answer the query: **"What are the top K items in the last X seconds?"**
-
-**Constraints:**
--   **High Throughput**: 5,000+ events per second.
--   **Sliding Window**: Events older than the window (e.g., 60 seconds) must be expired.
--   **Accuracy**: Must handle out-of-order events (late arrivals) correctly.
-
-## 🛠️ Implemented Solutions
-
-We tested four approaches to store the raw events for window management:
-
-### 1. HeapTopK (MinHeap)
--   **Structure**: A Min-Heap sorted by timestamp.
--   **Ingestion**: $O(\log N)$ (Optimized sift-up).
--   **Expiration**: $O(K \log N)$ to remove old events from the root.
--   **Pros**: Extremely fast ingestion; very memory efficient (array-based).
--   **Cons**: Removing arbitrary elements is slow, but we only remove the *oldest* (min), which fits the heap perfecty.
-
-### 2. TreeTopK (TreeMap / Red-Black Tree)
--   **Structure**: A Red-Black tree sorted by timestamp.
--   **Ingestion**: $O(\log N)$.
--   **Expiration**: $O(\log N)$ (or effectively $O(1)$ amortized if using `pollFirstEntry`).
--   **Pros**: Fastest expiration (pruning); naturally sorted.
--   **Cons**: Higher memory overhead (Node objects); slower ingestion than Heap due to rebalancing.
-
-### 3. ListTopK (ArrayList + Binary Search)
--   **Structure**: A sorted ArrayList.
--   **Ingestion**: $O(N)$ (Binary search + Insert/Shift).
--   **Expiration**: $O(N)$ (Removing from head requires shifting all elements).
--   **Pros**: Simple; $O(1)$ access by index.
--   **Cons**: **Terrible performance** for sliding windows due to memory shifting ($O(N)$) on every insert/delete.
-
-### 4. LinkedTopK (LinkedList)
--   **Structure**: A sorted LinkedList.
--   **Ingestion**: $O(N)$ (Traversal to find sort position + $O(1)$ Link).
--   **Expiration**: $O(1)$ (Unlink head).
--   **Pros**: Instant expiration (no shifting).
--   **Cons**: **Slow Ingestion**. Traversing the list to insert out-of-order items is very slow due to pointer chasing (cache misses), even if it avoids memory shifting.
+This repository explores the system design trade-offs involved in maintaining a **Top-K Ranking** over a high-velocity sliding window. It simulates a mock production workload (e.g., "Trending Videos", "DDoS IP Limiting") to evaluate four distinct data structures on **Ingestion Latency**, **Eviction Costs**, and **Memory Locality**.
 
 ---
 
-## 📊 Evaluation Results
+## 1. Problem Context & Constraints
 
-**Scenario**:
--   **Rate**: 5,000 events/second
--   **Window**: 60 seconds (~300,000 active events in steady state)
--   **Metric**: Average time to process **one second** of data (5,000 ops).
+The "Top-K" problem appears simple but becomes non-trivial under strict latency and correctness constraints.
 
-| Metric | MinHeap (HeapTopK) | TreeMap (TreeTopK) | ArrayList (ListTopK) | LinkedList (LinkedTopK) |
+### The Scenario
+-   **Workload**: 5,000 to 100,000 events per second.
+-   **Window**: Sliding time window (e.g., "Last 60 seconds").
+-   **Query**: "Who are the top 10 most frequent items right now?"
+
+### The Constraints
+1.  **Write-Heavy**: The system must handle 99% writes (ingest) and <1% reads (query).
+2.  **Strict Eviction**: Events must expire precisely when they fall out of the window.
+3.  **Out-of-Order Data**: 5% of events arrive late (simulating network jitter), preventing naive append-only optimizations.
+4.  **Garbage Collection**: Minimizing object churn is critical to avoid "stop-the-world" pauses.
+
+---
+
+## 2. Design Space Exploration
+
+We evaluated four canonical data structures. Each represents a different logical approach to the `insert`/`evict` problem.
+
+| Strategy | Structure | Ingest Complexity | Evict Complexity | Optimization Theory | Principal Insight |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **MinHeap** | Priority Queue | $O(\log N)$ | $O(\log N)$ | Sift-up/down on Array | **Winner**. Excellent cache locality. Removing the *oldest* item aligns perfectly with Min-Heap semantics. |
+| **TreeMap** | Red-Black Tree | $O(\log N)$ | $O(\log N)$ | Balanced Tree | **Passable**. Good theoretical bounds, but heavy pointer indirection and object overhead (Nodes) degrade performance vs Arrays. |
+| **LinkedList** | Doubly Linked | $O(N)$ * | $O(1)$ | Constant time removal | **Failure**. The "O(1) Eviction" promise is a trap. Inserting out-of-order data requires $O(N)$ traversal, which is cache-hostile (pointer chasing). |
+| **ArrayList** | Sorted Array | $O(N)$ | $O(N)$ | Binary Search + Shift | **Failure**. While Binary Search is fast, shifting 300k items in memory for every eviction saturates memory bandwidth. |
+
+> ***Note**: LinkedList ingestion is technically $O(N)$, but practically much slower than ArrayList ingestion due to lack of CPU cache spatial locality.*
+
+---
+
+## 3. Evaluation Methodology
+
+### Workload Synthetic
+-   **Rate**: 5,000 events/sec.
+-   **Duration**: 80 seconds (Steady state reached at 60s).
+-   **Pattern**: 95% strictly increasing timestamps, 5% random late arrivals (jitter).
+-   **Hardware**: Windows x64 host.
+
+### Key Metrics
+1.  **Ingest Latency**: Cost to add a new event.
+2.  **Prune Latency**: Cost to remove expired events (Window maintenance).
+3.  **Total Latency**: The "Tax" paid per second of data processing.
+
+### Results (Steady State, N=300,000)
+
+| Metric | MinHeap | TreeMap | ArrayList | LinkedList |
 | :--- | :--- | :--- | :--- | :--- |
-| **Ingest Latency** (5k ops) | **0.70 ms** 🟢 | 2.18 ms | 2.59 ms | **85.37 ms** 🔴 |
-| **Prune Latency** (Windowing) | 1.08 ms | 0.31 ms | **26.18 ms** 🔴 | **0.18 ms** 🟢 |
-| **Total Query Latency** | 0.41 ms | 0.24 ms | 0.17 ms | 0.18 ms |
-| **Max Window Size** | ~300,000 | ~300,000 | ~300,000 | ~300,000 |
-
-### Analysis
-
-1.  **Winner: MinHeap and TreeMap**.
-    -   **MinHeap** is the best choice if your system is **write-heavy**. It effectively swallows 5,000 writes in just 0.6ms.
-    -   **TreeMap** is the best choice if you need **stable, low-latency pruning**. It removes old events 4x faster than the Heap.
-3.  **Loser: ArrayList and LinkedList**.
-    -   `ArrayList` fails on **Pruning** (26ms/sec) due to shifting elements.
-    -   `LinkedList` fails on **Ingestion** (85ms/sec). Even though it makes pruning instant (0.18ms), the cost of traversing the list to insert the 5% out-of-order elements (pointer chasing) is far more expensive than shifting an array. **Linked List is actually slower overall (~85ms total vs 29ms for ArrayList).**
-
-### Detailed Analysis
-For a deeper dive into the theoretical time complexity and initial storage analysis (MinHeap vs BST vs Sorted List), please refer to the [Time Series Storage Analysis](docs/TimeSeriesStorageAnalysis.md).
+| **Ingest** (5k ops) | **0.70 ms** 🟢 | 2.18 ms | 2.59 ms | **85.37 ms** 🔴 |
+| **Prune** (Window) | 1.08 ms | **0.31 ms** 🟢 | **26.18 ms** 🔴 | **0.18 ms** 🟢 |
+| **Total Cost** | **~1.8 ms** | ~2.5 ms | ~29 ms | ~85 ms |
 
 ---
 
-## 🚀 How to Run
+## 4. Recommendations
 
-1.  **Compile**:
-    ```bash
-    javac -d bin -sourcepath src src/topk/TopKEvaluation.java
-    ```
+### For Production Systems
+1.  **Default Choice: MinHeap**.
+    -   Use this for 90% of sliding window problems. It provides the best balance of write throughput and memory safety.
+    -   *Why?* It respects the hardware. Array-backed heaps minimize pointer chasing and allocation overhead.
 
-2.  **Run Benchmark**:
-    ```bash
-    java -cp bin topk.TopKEvaluation
-    ```
+2.  **For Complex Queries: TreeMap**.
+    -   Use only if you need Range Queries (e.g., "Count items between 12:00 and 12:05") in addition to Top-K.
+    -   *Cost*: 2x-3x higher latency and much higher GC pressure.
 
-### Configurable Run
+3.  **For "Billions of Events": Sketching**.
+    -   Do not store raw events. Use a **Count-Min Sketch** in a **Scatter-Gather** architecture.
+    -   See [Architecture Article](docs/Article_TopK_YouTube.md) for the distributed design.
 
-You can run the benchmark with custom Event Rate (ops/sec) and Duration (seconds).
+---
 
-**Windows (PowerShell):**
-```powershell
-.\run_benchmark.ps1 -Rate 1000 -Duration 10
-```
+## 5. Running the Experiments
 
-**Linux / Mac (Bash):**
+**Run Benchmarks:**
 ```bash
-chmod +x run_benchmark.sh
-./run_benchmark.sh -r 1000 -d 10
+# Windows
+.\run_benchmark.ps1 -Rate 5000 -Duration 80
+
+# Linux
+./run_benchmark.sh -r 5000 -d 80
 ```
-
-## 📂 Project Structure
-
--   `src/topk/TopKEvaluation.java`: The main benchmark harness.
--   `src/topk/HeapTopK.java`: Implementation using `datastructure.MinHeap`.
--   `src/topk/TreeTopK.java`: Implementation using `java.util.TreeMap`.
--   `src/topk/ListTopK.java`: Implementation using `java.util.ArrayList`.
--   `src/topk/LinkedListTopK.java`: Implementation using `java.util.LinkedList`.
--   `src/datastructure/MinHeap.java`: A custom, efficient MinHeap implementation.
--   `docs/`: Analysis and documentation files.

@@ -1,10 +1,9 @@
-# Designing a Real-Time Top-K YouTube View Counter: From 5k to Billions of Events
+System design interviews often ask you to "Design YouTube Trending". While the high-level architecture (Load Balancers -> Services -> Databases) is standard, the core *algorithmic* challenge—maintaining a real-time ranking over a massive, high-velocity stream—is where many designs fail.
 
-Imagine you are tasked with building the "Trending Videos" feature for YouTube. You have a constant stream of "View" events arriving every millisecond. Your goal is to maintain a live dashboard showing the **Top 10 Most Viewed Videos in the Last Minute**.
+In this deep dive, we move beyond the whiteboard. We implemented and benchmarked four potential solutions (Arrays, Lists, Trees, Heaps) against a realistic workload (5,000+ events/sec, sliding window, out-of-order data).
 
-It sounds simple: counts videos, sort them, take the top 10. But when you are dealing with high throughput (thousands of events per second) and a sliding time window (events expire every millisecond), the choice of data structure can mean the difference between a real-time dashboard and a crashed server.
+The results highlight a critical lesson for Staff+ engineers: **Theoretical Big-O complexity often lies about real-world performance.**
 
-In this article, we'll benchmark four common data structures to solve this problem, analyze why some fail spectacularly, and discuss how to scale this system to handle billions of events.
 
 ---
 
