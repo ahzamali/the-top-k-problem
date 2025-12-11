@@ -42,6 +42,7 @@ public class TopKEvaluation {
         evaluate("HeapTopK", new HeapTopK(WINDOW_MS), timeline);
         evaluate("TreeTopK", new TreeTopK(WINDOW_MS), timeline);
         evaluate("ListTopK", new ListTopK(WINDOW_MS), timeline);
+        evaluate("LinkedTopK", new LinkedListTopK(WINDOW_MS), timeline);
     }
 
     private static void evaluate(String name, TopKHandler handler, List<Tick> timeline) {

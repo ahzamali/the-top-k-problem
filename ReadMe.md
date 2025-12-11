@@ -45,20 +45,21 @@ We tested three approaches to store the raw events for window management:
 -   **Window**: 60 seconds (~300,000 active events in steady state)
 -   **Metric**: Average time to process **one second** of data (5,000 ops).
 
-| Metric | MinHeap (HeapTopK) | TreeMap (TreeTopK) | ArrayList (ListTopK) |
-| :--- | :--- | :--- | :--- |
-| **Ingest Latency** (5k ops) | **0.64 ms** 🟢 | 1.45 ms | 2.54 ms |
-| **Prune Latency** (Windowing) | 0.96 ms | **0.24 ms** 🟢 | **27.58 ms** 🔴 |
-| **Total Query Latency** | 0.37 ms | 0.20 ms | 0.16 ms |
-| **Max Window Size** | ~300,000 | ~300,000 | ~300,000 |
+| Metric | MinHeap (HeapTopK) | TreeMap (TreeTopK) | ArrayList (ListTopK) | LinkedList (LinkedTopK) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Ingest Latency** (5k ops) | **0.70 ms** 🟢 | 2.18 ms | 2.59 ms | **85.37 ms** 🔴 |
+| **Prune Latency** (Windowing) | 1.08 ms | 0.31 ms | **26.18 ms** 🔴 | **0.18 ms** 🟢 |
+| **Total Query Latency** | 0.41 ms | 0.24 ms | 0.17 ms | 0.18 ms |
+| **Max Window Size** | ~300,000 | ~300,000 | ~300,000 | ~300,000 |
 
 ### Analysis
 
 1.  **Winner: MinHeap and TreeMap**.
     -   **MinHeap** is the best choice if your system is **write-heavy**. It effectively swallows 5,000 writes in just 0.6ms.
     -   **TreeMap** is the best choice if you need **stable, low-latency pruning**. It removes old events 4x faster than the Heap.
-2.  **Loser: ArrayList**.
-    -   The `ArrayList` approach collapses under load. Pruning takes **27ms** per second (vs <1ms for others). This is caused by shifting 300,000 elements in memory every second. **Do not use huge sorted lists for sliding windows.**
+3.  **Loser: ArrayList and LinkedList**.
+    -   `ArrayList` fails on **Pruning** (26ms/sec) due to shifting elements.
+    -   `LinkedList` fails on **Ingestion** (85ms/sec). Even though it makes pruning instant (0.18ms), the cost of traversing the list to insert the 5% out-of-order elements (pointer chasing) is far more expensive than shifting an array. **Linked List is actually slower overall (~85ms total vs 29ms for ArrayList).**
 
 ### Detailed Analysis
 For a deeper dive into the theoretical time complexity and initial storage analysis (MinHeap vs BST vs Sorted List), please refer to the [Time Series Storage Analysis](docs/TimeSeriesStorageAnalysis.md).
@@ -98,5 +99,6 @@ chmod +x run_benchmark.sh
 -   `src/topk/HeapTopK.java`: Implementation using `datastructure.MinHeap`.
 -   `src/topk/TreeTopK.java`: Implementation using `java.util.TreeMap`.
 -   `src/topk/ListTopK.java`: Implementation using `java.util.ArrayList`.
+-   `src/topk/LinkedListTopK.java`: Implementation using `java.util.LinkedList`.
 -   `src/datastructure/MinHeap.java`: A custom, efficient MinHeap implementation.
 -   `docs/`: Analysis and documentation files.
