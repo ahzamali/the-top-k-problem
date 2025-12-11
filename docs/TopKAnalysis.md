@@ -34,7 +34,7 @@
 
 ## Design Recommendation
 
-For a **Top K Hit Counter** with 10k+ TPS:
+For a **Top K Hit Counter Hit Counter** with 10k+ TPS:
 1.  **Ingestion Path**: Use a **MinHeap** to store the time-ordered events.
 2.  **Aggregation**: Use a `ConcurrentHashMap` (or sharded maps) for the counters.
 3.  **Windowing**: A background thread (or the ingest thread) polls the Heap.

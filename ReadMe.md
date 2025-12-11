@@ -61,7 +61,7 @@ We tested three approaches to store the raw events for window management:
     -   The `ArrayList` approach collapses under load. Pruning takes **27ms** per second (vs <1ms for others). This is caused by shifting 300,000 elements in memory every second. **Do not use huge sorted lists for sliding windows.**
 
 ### Detailed Analysis
-For a deeper dive into the theoretical time complexity and initial storage analysis (MinHeap vs BST vs Sorted List), please refer to the [Time Series Storage Analysis](datastructure/TimeSeriesStorageAnalysis.md).
+For a deeper dive into the theoretical time complexity and initial storage analysis (MinHeap vs BST vs Sorted List), please refer to the [Time Series Storage Analysis](docs/TimeSeriesStorageAnalysis.md).
 
 ---
 
@@ -69,18 +69,19 @@ For a deeper dive into the theoretical time complexity and initial storage analy
 
 1.  **Compile**:
     ```bash
-    javac datastructure/MinHeap.java topk/*.java
+    javac -d bin -sourcepath src src/topk/TopKEvaluation.java
     ```
 
 2.  **Run Benchmark**:
     ```bash
-    java topk.TopKEvaluation
+    java -cp bin topk.TopKEvaluation
     ```
 
 ## 📂 Project Structure
 
--   `topk/TopKEvaluation.java`: The main benchmark harness.
--   `topk/HeapTopK.java`: Implementation using `datastructure.MinHeap`.
--   `topk/TreeTopK.java`: Implementation using `java.util.TreeMap`.
--   `topk/ListTopK.java`: Implementation using `java.util.ArrayList`.
--   `datastructure/MinHeap.java`: A custom, efficient MinHeap implementation.
+-   `src/topk/TopKEvaluation.java`: The main benchmark harness.
+-   `src/topk/HeapTopK.java`: Implementation using `datastructure.MinHeap`.
+-   `src/topk/TreeTopK.java`: Implementation using `java.util.TreeMap`.
+-   `src/topk/ListTopK.java`: Implementation using `java.util.ArrayList`.
+-   `src/datastructure/MinHeap.java`: A custom, efficient MinHeap implementation.
+-   `docs/`: Analysis and documentation files.
