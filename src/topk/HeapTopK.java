@@ -1,9 +1,9 @@
 package topk;
 
-import datastructure.MinHeap;
+import java.util.PriorityQueue;
 
 public class HeapTopK extends BaseTopKHandler {
-    private MinHeap<Event> minHeap = new MinHeap<>();
+    private PriorityQueue<Event> minHeap = new PriorityQueue<>();
 
     public HeapTopK(long windowDurationMs) {
         super(windowDurationMs);
@@ -11,7 +11,7 @@ public class HeapTopK extends BaseTopKHandler {
 
     @Override
     protected void addToWindow(String item, int count, long timestamp) {
-        minHeap.insert(new Event(item, count, timestamp));
+        minHeap.add(new Event(item, count, timestamp));
     }
 
     @Override
@@ -19,7 +19,7 @@ public class HeapTopK extends BaseTopKHandler {
         if (!minHeap.isEmpty()) {
             Event oldest = minHeap.peek();
             if (oldest.timestamp < threshold) {
-                return minHeap.extractMin();
+                return minHeap.poll();
             }
         }
         return null;
